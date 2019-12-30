@@ -92,11 +92,11 @@ void loop() {
 void uploadData() {
     if( client.connect( server, 8181 )) {
       digitalWrite(ERROR_PIN,LOW);
-      String data = "{\"data\":";
+      String data = "{\"data\":[";
       data += dataObject("temperature",bme.readTemperature());
       data += ",";
       data += dataObject("humidity",bme.readHumidity());
-      data += "}";
+      data += "]}";
       client.println(data);
       
     }else{
