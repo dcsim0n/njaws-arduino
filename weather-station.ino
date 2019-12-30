@@ -1,39 +1,39 @@
-/***************************************************************************
-  This is a library for the BME280 humidity, temperature & pressure sensor
 
-  Designed specifically to work with the Adafruit BME280 Breakout
-  ----> http://www.adafruit.com/products/2650
-
-  These sensors use I2C or SPI to communicate, 2 or 4 pins are required
-  to interface. The device's I2C address is either 0x76 or 0x77.
-
-  Adafruit invests time and resources providing this open source code,
-  please support Adafruit andopen-source hardware by purchasing products
-  from Adafruit!
-
-  Written by Limor Fried & Kevin Townsend for Adafruit Industries.
-  BSD license, all text above must be included in any redistribution
-  See the LICENSE file for details.
- ***************************************************************************/
+/****************
+ * Dana Simmons 
+ * 2019
+ */
 
 #include <Wire.h>
 #include <SPI.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
 #include <LiquidCrystal_I2C.h>
+#include <Ethernet.h>
+
 
 #define SEALEVELPRESSURE_HPA (1013.25)
 
-Adafruit_BME280 bme; // I2C
-//Adafruit_BME280 bme(BME_CS); // hardware SPI
-//Adafruit_BME280 bme(BME_CS, BME_MOSI, BME_MISO, BME_SCK); // software SPI
+Adafruit_BME280 bme; 
+
+LiquidCrystal_I2C lcd(0x27,16,2);
+
+EthernetClient client;
+
+const int ERROR_PIN = 2;
+
+byte server[] = {10,1,1,10 };
 
 unsigned long delayTime;
-LiquidCrystal_I2C lcd(0x27,16,2);
+
+byte mac[] = {
+  0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED
+};
 
 void setup() {
     Serial.begin(9600);
     while(!Serial);    // time to get serial running
+    pinMode(ERROR_PIN,OUTPUT);
     Serial.println(F("BME280 test"));
 
     unsigned status;
@@ -56,8 +56,27 @@ void setup() {
         lcd.print("Err");
         while (1) delay(10);
     }
+    // start the Ethernet connection:
+    Ethernet.init(10);
+    Serial.println("Initialize Ethernet with DHCP:");
+    if (Ethernet.begin(mac) == 0) {
+      Serial.println("Failed to configure Ethernet using DHCP");
+      if (Ethernet.hardwareStatus() == EthernetNoHardware) {
+        Serial.println("Ethernet shield was not found.  Sorry, can't run without hardware. :(");
+      } else if (Ethernet.linkStatus() == LinkOFF) {
+      Serial.println("Ethernet cable is not connected.");
+      }
+      // no point in carrying on, so do nothing forevermore:
+      while (true) {
+        delay(1);
+      }
+    }
+    // print your local IP address:
+    Serial.print("My IP address: ");
+    Serial.println(Ethernet.localIP());
     
     Serial.println("-- Default Test --");
+    
     delayTime = 1000;
 
     Serial.println();
@@ -66,10 +85,28 @@ void setup() {
 
 void loop() { 
     printValues();
+    uploadData();
     delay(delayTime);
 }
 
-
+void uploadData() {
+    if( client.connect( server, 8181 )) {
+      digitalWrite(ERROR_PIN,LOW);
+      String data = "{\"data\":";
+      data += dataObject("temperature",bme.readTemperature());
+      data += ",";
+      data += dataObject("humidity",bme.readHumidity());
+      data += "}";
+      client.println(data);
+      
+    }else{
+      digitalWrite(ERROR_PIN,HIGH);
+    }
+}
+String dataObject(String key_name, float value){
+   String objStr = String("{\"" + key_name + "\":" + value + "}");
+   return objStr;
+}
 void printValues() {
     Serial.print("Temperature = ");
     String temp = String(bme.readTemperature(),1);
