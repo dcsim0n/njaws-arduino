@@ -11,24 +11,29 @@
 #include <LiquidCrystal_I2C.h>
 #include <Ethernet.h>
 
+/***********************************/
+/* Configuration section           */
+
+const byte server_address[] = { 10, 1, 1, 10 };
+const int port = 80;
 
 #define SEALEVELPRESSURE_HPA (1013.25)
-
-Adafruit_BME280 bme; 
-
-LiquidCrystal_I2C lcd(0x27,16,2);
-
-EthernetClient client;
+const int LCD_ADDRESS = 0x27;
+const int LCD_WIDTH = 16;
+const int LCD_ROWS = 2;
 
 const int ERROR_PIN = 2;
-
-byte server[] = {10,1,1,10 };
-
-unsigned long delayTime;
 
 byte mac[] = {
   0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED
 };
+
+/**********************************/
+
+Adafruit_BME280 bme; 
+LiquidCrystal_I2C lcd(LCD_ADDRESS,LCD_WIDTH,LCD_ROWS);
+EthernetClient client;
+unsigned long delayTime;
 
 void setup() {
     Serial.begin(9600);
@@ -90,7 +95,7 @@ void loop() {
 }
 
 void uploadData() {
-    if( client.connect( server, 8181 )) {
+    if( client.connect( server_address , port )) {
       digitalWrite(ERROR_PIN,LOW);
       String data = "{\"data\":[";
       data += dataObject("temperature",bme.readTemperature());
