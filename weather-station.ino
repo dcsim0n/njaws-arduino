@@ -35,6 +35,16 @@ LiquidCrystal_I2C lcd(LCD_ADDRESS,LCD_WIDTH,LCD_ROWS);
 EthernetClient client;
 unsigned long delayTime;
 
+class HttpPostRequest {
+  public:
+  
+  EthernetClient client;
+  char *data;
+  int content_length;
+  int send();
+  HttpPostRequest(EthernetClient client, char *data);
+};
+
 void setup() {
     Serial.begin(9600);
     while(!Serial);    // time to get serial running
@@ -93,20 +103,27 @@ void loop() {
     uploadData();
     delay(delayTime);
 }
-
+void test_http(){
+  char data[] = "This is a test";
+  HttpPostRequest req = HttpPostRequest(client,data);
+  Serial.print("Initialized request of lenghth: ");
+  Serial.println(req.content_length);
+  Serial.println(req.data);
+}
 void uploadData() {
-    if( client.connect( server_address , port )) {
-      digitalWrite(ERROR_PIN,LOW);
-      String data = "{\"data\":[";
-      data += dataObject("temperature",bme.readTemperature());
-      data += ",";
-      data += dataObject("humidity",bme.readHumidity());
-      data += "]}";
-      client.println(data);
-      
-    }else{
-      digitalWrite(ERROR_PIN,HIGH);
-    }
+  test_http();
+  if( client.connect( server_address , port )) {
+    digitalWrite(ERROR_PIN,LOW);
+    String data = "{\"data\":[";
+    data += dataObject("temperature",bme.readTemperature());
+    data += ",";
+    data += dataObject("humidity",bme.readHumidity());
+    data += "]}";
+    client.println(data);
+    
+  }else{
+    digitalWrite(ERROR_PIN,HIGH);
+  }
 }
 String dataObject(String key_name, float value){
    String objStr = String("{\"" + key_name + "\":" + value + "}");
