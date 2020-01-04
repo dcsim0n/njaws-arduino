@@ -15,7 +15,7 @@
 /* Configuration section           */
 
 const byte server_address[] = { 10, 1, 1, 10 };
-const int port = 80;
+const int port = 3000;
 
 #define SEALEVELPRESSURE_HPA (1013.25)
 const int LCD_ADDRESS = 0x27;
@@ -104,7 +104,7 @@ void loop() {
     delay(delayTime);
 }
 void test_http(){
-  char data[] = "This is a test";
+  char data[] = "{\"data\":\"This is a test\"}";
   // String data = "{\"data\":[";
   //   data += dataObject("temperature",bme.readTemperature());
   //   data += ",";

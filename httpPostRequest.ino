@@ -10,7 +10,7 @@ HttpPostRequest::HttpPostRequest(EthernetClient *c,char *d){
 
 int HttpPostRequest::send(byte *server_address, int port){
     if(client->connect( server_address , port )) {
-      client->println("POST / HTTP 1.0");
+      client->println("POST /api/v1/users/ HTTP 1.0");
       // client->print("Host: ");
       // client->print(*server_address);
       // client->print(":");
