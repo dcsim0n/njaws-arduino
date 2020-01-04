@@ -38,11 +38,11 @@ unsigned long delayTime;
 class HttpPostRequest {
   public:
   
-  EthernetClient client;
+  EthernetClient *client;
   char *data;
   int content_length;
-  int send();
-  HttpPostRequest(EthernetClient client, char *data);
+  int send(byte *server_address, int port);
+  HttpPostRequest(EthernetClient *client, char *data);
 };
 
 void setup() {
@@ -105,25 +105,33 @@ void loop() {
 }
 void test_http(){
   char data[] = "This is a test";
-  HttpPostRequest req = HttpPostRequest(client,data);
+  // String data = "{\"data\":[";
+  //   data += dataObject("temperature",bme.readTemperature());
+  //   data += ",";
+  //   data += dataObject("humidity",bme.readHumidity());
+  //   data += "]}";
+  //   client.println(data);
+  HttpPostRequest req = HttpPostRequest(&client,data);
   Serial.print("Initialized request of lenghth: ");
   Serial.println(req.content_length);
   Serial.println(req.data);
+
+  req.send(server_address, port);
 }
 void uploadData() {
   test_http();
-  if( client.connect( server_address , port )) {
-    digitalWrite(ERROR_PIN,LOW);
-    String data = "{\"data\":[";
-    data += dataObject("temperature",bme.readTemperature());
-    data += ",";
-    data += dataObject("humidity",bme.readHumidity());
-    data += "]}";
-    client.println(data);
+  // if( client.connect( server_address , port )) {
+  //   digitalWrite(ERROR_PIN,LOW);
+  //   String data = "{\"data\":[";
+  //   data += dataObject("temperature",bme.readTemperature());
+  //   data += ",";
+  //   data += dataObject("humidity",bme.readHumidity());
+  //   data += "]}";
+  //   client.println(data);
     
-  }else{
-    digitalWrite(ERROR_PIN,HIGH);
-  }
+  // }else{
+  //   digitalWrite(ERROR_PIN,HIGH);
+  // }
 }
 String dataObject(String key_name, float value){
    String objStr = String("{\"" + key_name + "\":" + value + "}");
