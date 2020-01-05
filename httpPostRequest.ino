@@ -1,6 +1,6 @@
 
 
-HttpPostRequest::HttpPostRequest(EthernetClient *c,char *d){
+HttpPostRequest::HttpPostRequest(WiFiClient *c,char *d){
     client = c;
     data = d;
 
@@ -25,6 +25,11 @@ int HttpPostRequest::send(byte *server_address, int port){
       client->stop();
     }
     return 0;
+}
+
+String HttpPostRequest::dataObject(String key_name, float value){
+   String objStr = String("{\"" + key_name + "\":" + value + "}");
+   return objStr;
 }
   // enable this after debuging is done
   // private:

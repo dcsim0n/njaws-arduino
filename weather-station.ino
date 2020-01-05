@@ -5,24 +5,28 @@
  */
 
 #include <Wire.h>
-#include <SPI.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
 #include <LiquidCrystal_I2C.h>
-#include <Ethernet.h>
+#include <ESP8266WiFi.h>
 
 /***********************************/
 /* Configuration section           */
 
-const byte server_address[] = { 10, 1, 1, 10 };
+byte server_address[] = { 10, 1, 1, 10 };
 const int port = 3000;
+
+const char *wifi_ssid = "NachoWiFi"; //TO DO: move this to EEPROM
+const char *wifi_pass = "TuxedoDrive1040";
 
 #define SEALEVELPRESSURE_HPA (1013.25)
 const int LCD_ADDRESS = 0x27;
+const int BME_ADDRESS = 0x76;
+
 const int LCD_WIDTH = 16;
 const int LCD_ROWS = 2;
 
-const int ERROR_PIN = 2;
+//const int ERROR_PIN = 2;
 
 byte mac[] = {
   0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED
@@ -32,29 +36,35 @@ byte mac[] = {
 
 Adafruit_BME280 bme; 
 LiquidCrystal_I2C lcd(LCD_ADDRESS,LCD_WIDTH,LCD_ROWS);
-EthernetClient client;
+
+/* not needed after moving to ESP8266WIFI
+EthernetClient client; 
+*/
+WiFiClient client;
+
 unsigned long delayTime;
 
 class HttpPostRequest {
   public:
   
-  EthernetClient *client;
+  WiFiClient *client;
   char *data;
   int content_length;
   int send(byte *server_address, int port);
-  HttpPostRequest(EthernetClient *client, char *data);
+  HttpPostRequest(WiFiClient *client, char *data);
+  String dataObject(String key_name,float value);
 };
 
 void setup() {
     Serial.begin(9600);
     while(!Serial);    // time to get serial running
-    pinMode(ERROR_PIN,OUTPUT);
+    //pinMode(ERROR_PIN,OUTPUT);
     Serial.println(F("BME280 test"));
 
     unsigned status;
     
-    // default settings
-    status = bme.begin(0x77); 
+    Wire.begin(0,2); // Set I2C sda & sck pins
+    status = bme.begin(BME_ADDRESS,&Wire);
     lcd.init();
     lcd.backlight();
     lcd.setCursor(0,0);
@@ -72,26 +82,36 @@ void setup() {
         while (1) delay(10);
     }
     // start the Ethernet connection:
-    Ethernet.init(10);
-    Serial.println("Initialize Ethernet with DHCP:");
-    if (Ethernet.begin(mac) == 0) {
-      Serial.println("Failed to configure Ethernet using DHCP");
-      if (Ethernet.hardwareStatus() == EthernetNoHardware) {
-        Serial.println("Ethernet shield was not found.  Sorry, can't run without hardware. :(");
-      } else if (Ethernet.linkStatus() == LinkOFF) {
-      Serial.println("Ethernet cable is not connected.");
-      }
-      // no point in carrying on, so do nothing forevermore:
-      while (true) {
-        delay(1);
-      }
+    //Ethernet.init(10);
+    // Serial.println("Initialize Ethernet with DHCP:");
+    // if (Ethernet.begin(mac) == 0) {
+    //   Serial.println("Failed to configure Ethernet using DHCP");
+    //   if (Ethernet.hardwareStatus() == EthernetNoHardware) {
+    //     Serial.println("Ethernet shield was not found.  Sorry, can't run without hardware. :(");
+    //   } else if (Ethernet.linkStatus() == LinkOFF) {
+    //   Serial.println("Ethernet cable is not connected.");
+    //   }
+    //   // no point in carrying on, so do nothing forevermore:
+    //   while (true) {
+    //     delay(1);
+    //   }
+    // }
+    // // print your local IP address:
+    // Serial.print("My IP address: ");
+    // Serial.println(Ethernet.localIP());
+    
+    // Serial.println("-- Default Test --");
+    
+    Serial.printf("Connecting to %s", wifi_ssid);
+    WiFi.begin(wifi_ssid, wifi_pass);
+    while(WiFi.status() != WL_CONNECTED){
+      delay(500);
+      Serial.print(".");
     }
-    // print your local IP address:
-    Serial.print("My IP address: ");
-    Serial.println(Ethernet.localIP());
-    
-    Serial.println("-- Default Test --");
-    
+
+    // When doen with that loop, we are connected
+    Serial.println(" CONNECTED");
+
     delayTime = 1000;
 
     Serial.println();
@@ -133,10 +153,7 @@ void uploadData() {
   //   digitalWrite(ERROR_PIN,HIGH);
   // }
 }
-String dataObject(String key_name, float value){
-   String objStr = String("{\"" + key_name + "\":" + value + "}");
-   return objStr;
-}
+
 void printValues() {
     Serial.print("Temperature = ");
     String temp = String(bme.readTemperature(),1);
