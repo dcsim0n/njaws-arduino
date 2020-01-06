@@ -1,4 +1,3 @@
-
 /****************
  * Dana Simmons 
  * 2019
@@ -10,6 +9,11 @@
 #include <LiquidCrystal_I2C.h>
 #include <ESP8266WiFi.h>
 
+#include <ESP8266WebServer.h>
+
+
+#include <ArduinoJson.h>
+
 /***********************************/
 /* Configuration section           */
 
@@ -19,19 +23,14 @@ const int port = 3000;
 const char *wifi_ssid = "NachoWiFi"; //TO DO: move this to EEPROM
 const char *wifi_pass = "TuxedoDrive1040";
 
-#define SEALEVELPRESSURE_HPA (1013.25)
+
 const int LCD_ADDRESS = 0x27;
 const int BME_ADDRESS = 0x76;
 
 const int LCD_WIDTH = 16;
 const int LCD_ROWS = 2;
 
-//const int ERROR_PIN = 2;
-
-byte mac[] = {
-  0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED
-};
-
+const float SEALEVELPRESSURE_HPA = 1013.25;
 /**********************************/
 
 Adafruit_BME280 bme; 
@@ -42,7 +41,10 @@ EthernetClient client;
 */
 WiFiClient client;
 
-unsigned long delayTime;
+unsigned long LAST_LOG = millis();
+int LOG_INTERVAL = 2000; //ms 
+ESP8266WebServer server(80);
+
 
 class HttpPostRequest {
   public:
@@ -58,7 +60,6 @@ class HttpPostRequest {
 void setup() {
     Serial.begin(9600);
     while(!Serial);    // time to get serial running
-    //pinMode(ERROR_PIN,OUTPUT);
     Serial.println(F("BME280 test"));
 
     unsigned status;
@@ -81,27 +82,9 @@ void setup() {
         lcd.print("Err");
         while (1) delay(10);
     }
-    // start the Ethernet connection:
-    //Ethernet.init(10);
-    // Serial.println("Initialize Ethernet with DHCP:");
-    // if (Ethernet.begin(mac) == 0) {
-    //   Serial.println("Failed to configure Ethernet using DHCP");
-    //   if (Ethernet.hardwareStatus() == EthernetNoHardware) {
-    //     Serial.println("Ethernet shield was not found.  Sorry, can't run without hardware. :(");
-    //   } else if (Ethernet.linkStatus() == LinkOFF) {
-    //   Serial.println("Ethernet cable is not connected.");
-    //   }
-    //   // no point in carrying on, so do nothing forevermore:
-    //   while (true) {
-    //     delay(1);
-    //   }
-    // }
-    // // print your local IP address:
-    // Serial.print("My IP address: ");
-    // Serial.println(Ethernet.localIP());
-    
-    // Serial.println("-- Default Test --");
-    
+
+    // Setup WiFi connection next
+    //
     Serial.printf("Connecting to %s", wifi_ssid);
     WiFi.begin(wifi_ssid, wifi_pass);
     while(WiFi.status() != WL_CONNECTED){
@@ -110,51 +93,64 @@ void setup() {
     }
 
     // When doen with that loop, we are connected
-    Serial.println(" CONNECTED");
-
-    delayTime = 1000;
+    
+    Serial.print(" CONNECTED:");
+    Serial.println(WiFi.localIP());
 
     Serial.println();
+    Serial.println("Starting web server...");
+
+    server.on("/",handleRoot);
+    server.begin();
+    
+    Serial.println("HTTP Started!");
 }
 
 
 void loop() { 
     printValues();
-    uploadData();
-    delay(delayTime);
-}
-void test_http(){
-  char data[] = "{\"data\":\"This is a test\"}";
-  // String data = "{\"data\":[";
-  //   data += dataObject("temperature",bme.readTemperature());
-  //   data += ",";
-  //   data += dataObject("humidity",bme.readHumidity());
-  //   data += "]}";
-  //   client.println(data);
-  HttpPostRequest req = HttpPostRequest(&client,data);
-  Serial.print("Initialized request of lenghth: ");
-  Serial.println(req.content_length);
-  Serial.println(req.data);
-
-  req.send(server_address, port);
-}
-void uploadData() {
-  test_http();
-  // if( client.connect( server_address , port )) {
-  //   digitalWrite(ERROR_PIN,LOW);
-  //   String data = "{\"data\":[";
-  //   data += dataObject("temperature",bme.readTemperature());
-  //   data += ",";
-  //   data += dataObject("humidity",bme.readHumidity());
-  //   data += "]}";
-  //   client.println(data);
-    
-  // }else{
-  //   digitalWrite(ERROR_PIN,HIGH);
-  // }
+    server.handleClient();
 }
 
+void handleNotFound() {
+  //digitalWrite(led, 1);
+  String message = "{\"error\":\"Not Found\"}";
+  server.send(404, "application/json", message);
+  //digitalWrite(led, 0);
+}
+void handleRoot(){
+  Serial.println("Handling request: /");
+  float temp = bme.readTemperature();
+  float pres = bme.readPressure() / 100.0F;
+  float alti = bme.readAltitude(SEALEVELPRESSURE_HPA);
+  float humi = bme.readHumidity();
+
+  // Build Json Document 
+  const int capacity = JSON_OBJECT_SIZE(5);
+  
+  StaticJsonDocument<capacity> json_response;
+  json_response["temperature"] = temp;
+  json_response["pressure"] = pres;
+  json_response["altitude"] = alti;
+  json_response["humidity"] = humi;
+  json_response["time"] = millis();
+
+  // Prepare string buffer for response
+  int response_length = 1 + measureJson(json_response);
+
+  char response_str[response_length];
+  
+  serializeJson(json_response,response_str,response_length);
+
+  // Send response with status code
+  server.send(200,"application/json",response_str);
+
+}
 void printValues() {
+    if(sinceLastLog() < LOG_INTERVAL){
+      return;
+    }
+    LAST_LOG = millis();
     Serial.print("Temperature = ");
     String temp = String(bme.readTemperature(),1);
     String pres = String((bme.readPressure() / 100.0F),1);
@@ -174,11 +170,11 @@ void printValues() {
     lcd.print("m   | ");
     lcd.print(humi);
     lcd.print("%");
-    
+
     Serial.print("Pressure = ");
 
     Serial.print(bme.readPressure() / 100.0F);
-    Serial.println(" hPa");
+
 
     Serial.print("Approx. Altitude = ");
     Serial.print(bme.readAltitude(SEALEVELPRESSURE_HPA));
@@ -189,4 +185,8 @@ void printValues() {
     Serial.println(" %");
 
     Serial.println();
+}
+
+unsigned long sinceLastLog(){
+  return millis() - LAST_LOG;
 }

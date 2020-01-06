@@ -30,3 +30,7 @@ GND----> GND
   
   This shows calling `Wire.being([pin_sda],[pin_scl]);` will over ride defaults
 + Pins should be the GPIO pin numbers not physical pins. IE `Wire.begin(0,2)` to use `GPIO 0` and `GPIO 2` for I2C
+
++ [Arduino JSON Library docs](https://arduinojson.org/)
+
+  Wonderfull library for managing JSON de/serialization
