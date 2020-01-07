@@ -17,8 +17,8 @@
 /***********************************/
 /* Configuration section           */
 
-byte server_address[] = { 10, 1, 1, 10 };
-const int port = 3000;
+//byte server_address[] = { 10, 1, 1, 10 };
+//const int port = 3000;
 
 const char *wifi_ssid = "NachoWiFi"; //TO DO: move this to EEPROM
 const char *wifi_pass = "TuxedoDrive1040";
