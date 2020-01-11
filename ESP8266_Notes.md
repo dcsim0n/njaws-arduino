@@ -34,3 +34,9 @@ GND----> GND
 + [Arduino JSON Library docs](https://arduinojson.org/)
 
   Wonderfull library for managing JSON de/serialization
+
+
+# To Do list
+1. add routes for metric and imperial units
+2. convert to HTTPS using WebServerSecure
+
