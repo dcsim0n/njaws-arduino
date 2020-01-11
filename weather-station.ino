@@ -166,18 +166,20 @@ void printValues() {
     
     Serial.print(temp);
     Serial.println(" *C");
-
-    lcd.setCursor(0,0);
-    lcd.print(temp);
-    lcd.print("*C |");
-    lcd.print(pres);
-    lcd.print("hPa ");
-    lcd.setCursor(0,1);
-    lcd.print(alti);
-    lcd.print("m   | ");
-    lcd.print(humi);
-    lcd.print("%");
-
+    
+    if(LCD_ENABLE){ 
+      lcd.setCursor(0,0);
+      lcd.print(temp);
+      lcd.print("*C |");
+      lcd.print(pres);
+      lcd.print("hPa ");
+      lcd.setCursor(0,1);
+      lcd.print(alti);
+      lcd.print("m   | ");
+      lcd.print(humi);
+      lcd.print("%");
+    }
+    
     Serial.print("Pressure = ");
 
     Serial.print(bme.readPressure() / 100.0F);
