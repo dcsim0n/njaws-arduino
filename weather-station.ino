@@ -20,10 +20,10 @@
 //byte server_address[] = { 10, 1, 1, 10 };
 //const int port = 3000;
 
-const char *wifi_ssid = "NachoWiFi"; //TO DO: move this to EEPROM
-const char *wifi_pass = "TuxedoDrive1040";
+const char *wifi_ssid = "WIFI SSID"; //TO DO: move this to EEPROM
+const char *wifi_pass = "changethispassword";
 
-
+const bool LCD_ENABLE = true;
 const int LCD_ADDRESS = 0x27;
 const int BME_ADDRESS = 0x76;
 
@@ -34,8 +34,10 @@ const float SEALEVELPRESSURE_HPA = 1013.25;
 /**********************************/
 
 Adafruit_BME280 bme; 
-LiquidCrystal_I2C lcd(LCD_ADDRESS,LCD_WIDTH,LCD_ROWS);
 
+if(LCD_ENABLE){
+  LiquidCrystal_I2C lcd(LCD_ADDRESS,LCD_WIDTH,LCD_ROWS);
+}
 /* not needed after moving to ESP8266WIFI
 EthernetClient client; 
 */
@@ -66,10 +68,13 @@ void setup() {
     
     Wire.begin(0,2); // Set I2C sda & sck pins
     status = bme.begin(BME_ADDRESS,&Wire);
-    lcd.init();
-    lcd.backlight();
-    lcd.setCursor(0,0);
-    lcd.print("Init...");
+    
+    if(LCD_ENABLE){
+      lcd.init();
+      lcd.backlight();
+      lcd.setCursor(0,0);
+      lcd.print("Init...");
+    }
     // You can also pass in a Wire library object like &Wire2
     // status = bme.begin(0x76, &Wire2)
     if (!status) {
@@ -79,7 +84,9 @@ void setup() {
         Serial.print("   ID of 0x56-0x58 represents a BMP 280,\n");
         Serial.print("        ID of 0x60 represents a BME 280.\n");
         Serial.print("        ID of 0x61 represents a BME 680.\n");
-        lcd.print("Err");
+        if(LCD_ENABLE){
+          lcd.print("Err");  
+        }
         while (1) delay(10);
     }
 
