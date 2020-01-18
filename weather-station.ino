@@ -1,7 +1,7 @@
 /*************************
   Dana Simmons 
   2019
-  Version 1.2
+  Version 1.3
  ************************/
 
 #include <Wire.h>
@@ -21,7 +21,7 @@
 
 const bool LCD_ENABLE = true;
 const int LCD_ADDRESS = 0x27;
-const int BME_ADDRESS = 0x77;
+const int BME_ADDRESS = 0x76;
 
 const int LCD_WIDTH = 16;
 const int LCD_ROWS = 2;
@@ -170,7 +170,8 @@ void loop() {
     server.handleClient();
     secure_server.handleClient();
 }
-char* buildJsonString(Sample *sample){
+  
+String buildJsonString(Sample *sample){
   // Build Json Document 
   const int capacity = JSON_OBJECT_SIZE(5);
   
@@ -186,7 +187,7 @@ char* buildJsonString(Sample *sample){
   char response_str[response_length];
   serializeJson(json_response,response_str,response_length);
   
-  return response_str;
+  return String(response_str);
 }
 
 void handleNotFound() {
@@ -200,7 +201,7 @@ void handleRoot(){
   Serial.println("Handling request: /");
 
   Sample sample = Sample(&bme,true);
-  char *response = buildJsonString(&sample);
+  String response = buildJsonString(&sample);
   server.send(200,"application/json",response);
 
 }
@@ -209,7 +210,8 @@ void handleImperial(){
   Serial.println("Handling request: /i");
 
   Sample sample = Sample(&bme,false);
-  const *response = buildJsonString(&sample);
+  String response = buildJsonString(&sample);
+  Serial.println(response);
   server.send(200,"application/json",response);
 
 }
