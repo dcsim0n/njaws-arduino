@@ -1,7 +1,7 @@
 /*************************
   Dana Simmons 
   2019
-  Version 1.2
+  Version 1.3
  ************************/
 
 #include <Wire.h>
@@ -11,24 +11,22 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServerSecure.h>
 #include <ESP8266WebServer.h>
-
-
 #include <ArduinoJson.h>
-
+#include "Sample.h"
 /***********************************/
 /* Configuration section           */
 
-const char *wifi_ssid = "NachoWiFi"; //TO DO: move this to EEPROM
-const char *wifi_pass = "TuxedoDrive1040";
+// Create wifi_secret.h with wifi_ssid and wifi_pass char arrays
+#include "wifi_secret.h"
 
 const bool LCD_ENABLE = true;
 const int LCD_ADDRESS = 0x27;
-const int BME_ADDRESS = 0x77;
+const int BME_ADDRESS = 0x76;
 
 const int LCD_WIDTH = 16;
 const int LCD_ROWS = 2;
+const int LOG_INTERVAL = 2000; //ms
 
-const float SEALEVELPRESSURE_HPA = 1013.25;
 
 /**********************************
 Configure SSL keys here
@@ -103,8 +101,7 @@ LiquidCrystal_I2C lcd(LCD_ADDRESS,LCD_WIDTH,LCD_ROWS);
 
 WiFiClient client;
 
-unsigned long LAST_LOG = millis();
-int LOG_INTERVAL = 2000; //ms 
+unsigned long LAST_LOG = millis(); 
 ESP8266WebServerSecure secure_server(443);
 ESP8266WebServer server(80);
 void setup() {
@@ -173,6 +170,25 @@ void loop() {
     server.handleClient();
     secure_server.handleClient();
 }
+  
+String buildJsonString(Sample *sample){
+  // Build Json Document 
+  const int capacity = JSON_OBJECT_SIZE(5);
+  
+  StaticJsonDocument<capacity> json_response;
+  json_response["temperature"] = sample->temperature;
+  json_response["pressure"] = sample->pressure;
+  json_response["altitude"] = sample->altitude;
+  json_response["humidity"] = sample->humidity;
+  json_response["time"] = millis();
+
+  // Prepare string buffer for response
+  int response_length = 1 + measureJson(json_response);
+  char response_str[response_length];
+  serializeJson(json_response,response_str,response_length);
+  
+  return String(response_str);
+}
 
 void handleNotFound() {
   //digitalWrite(led, 1);
@@ -180,62 +196,26 @@ void handleNotFound() {
   server.send(404, "application/json", message);
   //digitalWrite(led, 0);
 }
+
 void handleRoot(){
   Serial.println("Handling request: /");
-  float temp = bme.readTemperature();
-  float pres = bme.readPressure() / 100.0F;
-  float alti = bme.readAltitude(SEALEVELPRESSURE_HPA);
-  float humi = bme.readHumidity();
 
-  // Build Json Document 
-  const int capacity = JSON_OBJECT_SIZE(5);
-  
-  StaticJsonDocument<capacity> json_response;
-  json_response["temperature"] = temp;
-  json_response["pressure"] = pres;
-  json_response["altitude"] = alti;
-  json_response["humidity"] = humi;
-  json_response["time"] = millis();
-
-  // Prepare string buffer for response
-  int response_length = 1 + measureJson(json_response);
-
-  char response_str[response_length];
-  
-  serializeJson(json_response,response_str,response_length);
-
-  // Send response with status code
-  server.send(200,"application/json",response_str);
+  Sample sample = Sample(&bme,true);
+  String response = buildJsonString(&sample);
+  server.send(200,"application/json",response);
 
 }
+
 void handleImperial(){
   Serial.println("Handling request: /i");
-  float temp = (bme.readTemperature() * 1.8) + 32;
-  float pres = (bme.readPressure() / 100.0F) * 1.333;
-  float alti = bme.readAltitude(SEALEVELPRESSURE_HPA) * 3.281 ;
-  float humi = bme.readHumidity();
 
-  // Build Json Document 
-  const int capacity = JSON_OBJECT_SIZE(5);
-  
-  StaticJsonDocument<capacity> json_response;
-  json_response["temperature"] = temp;
-  json_response["pressure"] = pres;
-  json_response["altitude"] = alti;
-  json_response["humidity"] = humi;
-  json_response["time"] = millis();
-
-  // Prepare string buffer for response
-  int response_length = 1 + measureJson(json_response);
-
-  char response_str[response_length];
-  
-  serializeJson(json_response,response_str,response_length);
-
-  // Send response with status code
-  server.send(200,"application/json",response_str);
+  Sample sample = Sample(&bme,false);
+  String response = buildJsonString(&sample);
+  Serial.println(response);
+  server.send(200,"application/json",response);
 
 }
+
 void printValues() {
     if(sinceLastLog() < LOG_INTERVAL){
       return;
