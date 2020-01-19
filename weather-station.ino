@@ -152,10 +152,10 @@ void setup() {
     Serial.println();
     Serial.println("Starting web server...");
 
-//    secure_server.getServer().setServerKeyAndCert_P(rsakey, sizeof(rsakey), x509, sizeof(x509));
-//    secure_server.on("/",handleRoot);
-//    secure_server.on("/i",handleImperial);
-//    secure_server.begin();
+    secure_server.getServer().setServerKeyAndCert_P(rsakey, sizeof(rsakey), x509, sizeof(x509));
+    secure_server.on("/",handleRoot);
+    secure_server.on("/i",handleImperial);
+    secure_server.begin();
     
     server.on("/",handleRoot);
     server.on("/i",handleImperial);
