@@ -25,7 +25,7 @@ const int BME_ADDRESS = 0x76;
 
 const int LCD_WIDTH = 16;
 const int LCD_ROWS = 2;
-const int LOG_INTERVAL = 2000; //ms
+const int LOG_INTERVAL = 4000; //ms
 
 const float SEALEVELPRESSURE_HPA = 1013.25;
 /**********************************
@@ -152,10 +152,10 @@ void setup() {
     Serial.println();
     Serial.println("Starting web server...");
 
-    secure_server.getServer().setServerKeyAndCert_P(rsakey, sizeof(rsakey), x509, sizeof(x509));
-    secure_server.on("/",handleRoot);
-    secure_server.on("/i",handleImperial);
-    secure_server.begin();
+//    secure_server.getServer().setServerKeyAndCert_P(rsakey, sizeof(rsakey), x509, sizeof(x509));
+//    secure_server.on("/",handleRoot);
+//    secure_server.on("/i",handleImperial);
+//    secure_server.begin();
     
     server.on("/",handleRoot);
     server.on("/i",handleImperial);
