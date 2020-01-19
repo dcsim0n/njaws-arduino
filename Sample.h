@@ -3,7 +3,7 @@
  * Dana Simmons 2020
  */
 
-const float SEALEVELPRESSURE_HPA = 1013.25;
+
 
 class Sample {
   public:

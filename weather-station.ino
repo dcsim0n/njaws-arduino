@@ -27,7 +27,7 @@ const int LCD_WIDTH = 16;
 const int LCD_ROWS = 2;
 const int LOG_INTERVAL = 2000; //ms
 
-
+const float SEALEVELPRESSURE_HPA = 1013.25;
 /**********************************
 Configure SSL keys here
 **********************************/
@@ -171,7 +171,7 @@ void loop() {
     secure_server.handleClient();
 }
   
-String buildJsonString(Sample *sample){
+int buildJsonString(char *response_str, Sample *sample){
   // Build Json Document 
   const int capacity = JSON_OBJECT_SIZE(5);
   
@@ -184,10 +184,10 @@ String buildJsonString(Sample *sample){
 
   // Prepare string buffer for response
   int response_length = 1 + measureJson(json_response);
-  char response_str[response_length];
+  // char response_str[response_length];
   serializeJson(json_response,response_str,response_length);
   
-  return String(response_str);
+  return 0;
 }
 
 void handleNotFound() {
@@ -201,7 +201,9 @@ void handleRoot(){
   Serial.println("Handling request: /");
 
   Sample sample = Sample(&bme,true);
-  String response = buildJsonString(&sample);
+  char response[240] = "";
+  buildJsonString(response, &sample);
+  // String response = buildJsonString(&sample);
   server.send(200,"application/json",response);
 
 }
@@ -210,7 +212,9 @@ void handleImperial(){
   Serial.println("Handling request: /i");
 
   Sample sample = Sample(&bme,false);
-  String response = buildJsonString(&sample);
+  char response[240] = "";
+  buildJsonString(response,&sample);
+  // String response = buildJsonString(&sample);
   Serial.println(response);
   server.send(200,"application/json",response);
 
