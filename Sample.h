@@ -8,6 +8,7 @@
 class Sample {
   public:
   Sample(Adafruit_BME280 *bme, bool METRIC);
+  Sample(DHT *dht, bool METRIC);
   bool METRIC;
   float temperature;
   float pressure;

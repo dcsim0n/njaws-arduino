@@ -1,3 +1,9 @@
+
+
+
+
+
+
 /*************************
   Dana Simmons 
   2019
@@ -5,17 +11,17 @@
  ************************/
 
 #include <Wire.h>
-#include <Adafruit_Sensor.h>
-#include <Adafruit_BME280.h>
-#include <LiquidCrystal_I2C.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServerSecure.h>
 #include <ESP8266WebServer.h>
+#include <LiquidCrystal_I2C.h>
+#include <Adafruit_BME280.h>
+#include <DHT.h>
+#include <DHT_U.h>
 #include <ArduinoJson.h>
 #include "Sample.h"
-
-
-
+#include <Adafruit_SSD1306.h>
+#include <splash.h>
 
 /***********************************/
 /* Configuration section           */
@@ -23,12 +29,16 @@
 // Create wifi_secret.h with wifi_ssid and wifi_pass char arrays
 #include "wifi_secret.h"
 
-const bool LCD_ENABLE = true;  // If no LCD attached set to false
-const int LCD_ADDRESS = 0x27;  // Address of the LCD controller
-const int BME_ADDRESS = 0x76;  // Address of the Sensor
+//const int BME_ADDRESS = 0x76;  // Address of the Sensor
 
-const int LCD_WIDTH = 16;
-const int LCD_ROWS = 2;
+#define DHT_TYPE DHT22
+const int DHT_PIN = 2;
+
+
+const bool LCD_ENABLE = true;  // If no LCD attached set to false
+const int LCD_ADDRESS = 0x3c;  // Address of the LCD controller
+const int LCD_WIDTH = 128;
+const int LCD_ROWS = 64;
 const int LOG_INTERVAL = 4000; // miliseconds between log output
 
 const float SEALEVELPRESSURE_HPA = 1013.25;
@@ -36,8 +46,20 @@ const float SEALEVELPRESSURE_HPA = 1013.25;
 /*-----------------------------------------------------------------------*/
 // Initialize global variables here
 /*-----------------------------------------------------------------------*/
-Adafruit_BME280 bme; 
-LiquidCrystal_I2C lcd(LCD_ADDRESS,LCD_WIDTH,LCD_ROWS);
+
+// Uncomment for bme sensors
+//Adafruit_BME280 bme; 
+
+// Uncoment for DHT22 sensors
+DHT dht(DHT_PIN, DHT_TYPE);
+
+// Uncomment for 16x2 lcd
+//LiquidCrystal_I2C lcd(LCD_ADDRESS,LCD_WIDTH,LCD_ROWS);
+
+// Configure OLED display
+#define OLED_RESET     -1 // Reset pin # (or -1 if sharing Arduino reset pin)
+Adafruit_SSD1306 display(LCD_WIDTH, LCD_ROWS, &Wire, OLED_RESET);
+
 WiFiClient client;
 unsigned long LAST_LOG = millis(); 
 ESP8266WebServer server(80);
@@ -46,7 +68,8 @@ ESP8266WebServer server(80);
 void setup() {
     Serial.begin(9600);
     while(!Serial);    // time to get serial running
-    Serial.println(F("BME280 test"));
+    
+    // Serial.println(F("BME280 test"));
 
     unsigned status;
     
@@ -54,28 +77,25 @@ void setup() {
     // Comment this out to use default I2C pins
     // Only necessary for 8 pin ESP10 modules that have only 2 gpio pins
     // Wire.begin(0,2); // Set I2C sda & sck pins
-    status = bme.begin(BME_ADDRESS,&Wire);
+    // status = bme.begin(BME_ADDRESS,&Wire);
+    dht.begin();
     
-    if(LCD_ENABLE){
-      lcd.init(); // Could probably use some error handling here if there is no lcd attached or mis-configured
-      lcd.backlight();
-      lcd.setCursor(0,0);
-      lcd.print("Init...");
+    status = display.begin(SSD1306_SWITCHCAPVCC, LCD_ADDRESS);
+    
+    if(!status){
+      Serial.println("Could not initialize display and sensors");
+      while(1){
+        delay(200);
+      }
     }
-    if (!status) {
-        Serial.println("Could not find a valid BME280 sensor, check wiring, address, sensor ID!");
-        Serial.print("SensorID was: 0x"); Serial.println(bme.sensorID(),16);
-        Serial.print("        ID of 0xFF probably means a bad address, a BMP 180 or BMP 085\n");
-        Serial.print("   ID of 0x56-0x58 represents a BMP 280,\n");
-        Serial.print("        ID of 0x60 represents a BME 280.\n");
-        Serial.print("        ID of 0x61 represents a BME 680.\n");
-        if(LCD_ENABLE){
-          lcd.print("Err");  
-        }
-        while(1){
-          delay(10); // Infinite loop for if things fail
-        }
-    }
+
+    display.clearDisplay();
+    display.setCursor(0,0);
+    display.setTextSize(1);
+    display.setTextColor(SSD1306_WHITE);        // Draw white text
+    display.println("Connecting to: ");
+    display.println(wifi_ssid);
+    display.display();
 
     // Setup WiFi connection next
     Serial.printf("Connecting to %s", wifi_ssid);
@@ -87,6 +107,10 @@ void setup() {
 
     // When doen with that loop, we are connected
     Serial.print(" CONNECTED:");
+    display.println("Connected:");
+    display.println(WiFi.localIP());
+    display.display();
+    delay(2000);
     // Log the IP address so we can connect later
     Serial.println(WiFi.localIP());
 
@@ -133,14 +157,16 @@ void handleNotFound() {
 }
 
 void handleRoot(){
-  Sample sample = Sample(&bme,true);
+//  Sample sample = Sample(&bme,true);
+  Sample sample = Sample(&dht, true);
   char response[100] = "";
   buildJsonString(response, &sample);
   server.send(200,"application/json",response);
 }
 
 void handleImperial(){
-  Sample sample = Sample(&bme,false);
+//  Sample sample = Sample(&bme,false);
+  Sample sample = Sample(&dht, true);
   char response[100] = "";
   buildJsonString(response,&sample);
   Serial.println(response);
@@ -153,42 +179,25 @@ void printValues() {
       // exit without logging if the it's not time for it yet
       return;
     }
+    
+    Sample sample = Sample(&dht, true);
+
     Serial.print("Temperature = ");
-    String temp = String(bme.readTemperature(),1);
-    String pres = String((bme.readPressure() / 100.0F),1);
-    String alti = String(bme.readAltitude(SEALEVELPRESSURE_HPA),0);
-    String humi = String(bme.readHumidity(),1);
-    
-    Serial.print(temp);
-    Serial.println(" *C");
-    
-    if(LCD_ENABLE){ 
-      lcd.setCursor(0,0);
-      lcd.print(temp);
-      lcd.print("*C |");
-      lcd.print(pres);
-      lcd.print("hPa ");
-      lcd.setCursor(0,1);
-      lcd.print(alti);
-      lcd.print("m   | ");
-      lcd.print(humi);
-      lcd.print("%");
-    }
-    
-    Serial.print("Pressure = ");
-
-    Serial.print(bme.readPressure() / 100.0F);
-
-
-    Serial.print("Approx. Altitude = ");
-    Serial.print(bme.readAltitude(SEALEVELPRESSURE_HPA));
-    Serial.println(" m");
-
+    Serial.println(sample.temperature);
     Serial.print("Humidity = ");
-    Serial.print(bme.readHumidity());
-    Serial.println(" %");
+    Serial.println(sample.humidity);
 
-    Serial.println();
+    display.clearDisplay();
+    display.setCursor(0,0);
+    display.setTextSize(2);
+    display.print("Temp: ");
+    display.println(sample.temperature);
+    display.println();
+    display.print("RH%: ");
+    display.println(sample.humidity);
+
+    display.display();
+    
 }
 
 bool is_time_to_log(){
