@@ -110,7 +110,7 @@ void setup() {
     display.println("Connected:");
     display.println(WiFi.localIP());
     display.display();
-    delay(2000);
+    delay(2000);\
     // Log the IP address so we can connect later
     Serial.println(WiFi.localIP());
 
@@ -166,7 +166,7 @@ void handleRoot(){
 
 void handleImperial(){
 //  Sample sample = Sample(&bme,false);
-  Sample sample = Sample(&dht, true);
+  Sample sample = Sample(&dht, false);
   char response[100] = "";
   buildJsonString(response,&sample);
   Serial.println(response);
@@ -180,7 +180,7 @@ void printValues() {
       return;
     }
     
-    Sample sample = Sample(&dht, true);
+    Sample sample = Sample(&dht, false);
 
     Serial.print("Temperature = ");
     Serial.println(sample.temperature);
@@ -190,12 +190,14 @@ void printValues() {
     display.clearDisplay();
     display.setCursor(0,0);
     display.setTextSize(2);
-    display.print("Temp: ");
+    display.print("T: ");
     display.println(sample.temperature);
     display.println();
-    display.print("RH%: ");
+    display.print("H: ");
     display.println(sample.humidity);
-
+    display.setTextSize(1);
+    display.println();
+    display.println(WiFi.localIP());
     display.display();
     
 }

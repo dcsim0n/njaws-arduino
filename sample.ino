@@ -21,7 +21,7 @@ Sample::Sample(Adafruit_BME280 *bme, bool METRIC){
 }
 
 Sample::Sample(DHT *dht, bool METRIC){
-  temperature = dht->readTemperature();
+  temperature = dht->readTemperature(!METRIC);
   pressure = 0;
   altitude = 0;
   humidity = dht->readHumidity();
