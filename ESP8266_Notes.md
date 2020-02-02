@@ -28,7 +28,7 @@ GND----> GND
   Doesn't show optional pin reference, maybe Wire has a separate implementation for ESP8266?
 + [Adafruit I2C pin selection](https://learn.sparkfun.com/tutorials/esp8266-thing-hookup-guide/using-the-arduino-addon)
   
-  This shows calling `Wire.being([pin_sda],[pin_scl]);` will over ride defaults
+  This shows calling `Wire.begin[pin_sda],[pin_scl]);` will over ride defaults
 + Pins should be the GPIO pin numbers not physical pins. IE `Wire.begin(0,2)` to use `GPIO 0` and `GPIO 2` for I2C
 
 + [Arduino JSON Library docs](https://arduinojson.org/)
