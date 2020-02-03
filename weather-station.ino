@@ -1,9 +1,3 @@
-
-
-
-
-
-
 /*************************
   Dana Simmons 
   2019
@@ -44,7 +38,7 @@ const int LOG_INTERVAL = 4000; // miliseconds between log output
 const float SEALEVELPRESSURE_HPA = 1013.25;
 
 /*-----------------------------------------------------------------------*/
-// Initialize global variables here
+// Initialize global memory
 /*-----------------------------------------------------------------------*/
 
 // Uncomment for bme sensors
@@ -64,7 +58,7 @@ WiFiClient client;
 unsigned long LAST_LOG = millis(); 
 ESP8266WebServer server(80);
 
-// Begin initialization
+// Begin setting things up to run
 void setup() {
     Serial.begin(9600);
     while(!Serial);    // time to get serial running
@@ -92,7 +86,6 @@ void setup() {
     display.clearDisplay();
     display.setCursor(0,0);
     display.setTextSize(1);
-    display.setTextColor(SSD1306_WHITE);        // Draw white text
     display.println("Connecting to: ");
     display.println(wifi_ssid);
     display.display();
@@ -107,12 +100,14 @@ void setup() {
 
     // When doen with that loop, we are connected
     Serial.print(" CONNECTED:");
+  
     display.println("Connected:");
     display.println(WiFi.localIP());
     display.display();
-    delay(2000);\
-    // Log the IP address so we can connect later
+   
     Serial.println(WiFi.localIP());
+    // Log the IP address so we can connect later
+    delay(2000);\
 
     Serial.println();
     Serial.println("Starting web server...");
